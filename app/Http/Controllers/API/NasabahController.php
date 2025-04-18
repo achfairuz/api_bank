@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Validator;
 
+use function PHPUnit\Framework\isEmpty;
+
 class NasabahController extends BaseController
 {
     /**
@@ -22,25 +24,45 @@ class NasabahController extends BaseController
      */
     public function create(Request $request)
     {
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'nama_lengkap' => 'required',
-                'alamat' => 'required',
-                'nomor_telepon' => 'required',
-                'email' => 'required|email',
-                'tanggal_lahir' => 'required',
-                'jenis_kelamin' => 'required',
-                'nama_ibu' => 'required',
-            ]
-        );
+        $validator = Validator::make($request->all(), [
+            'nama_lengkap'    => 'required',
+            'alamat'          => 'required',
+            'nomor_telepon'   => 'required',
+            'email'           => 'required|email',
+            'tanggal_lahir'   => 'required',
+            'jenis_kelamin'   => 'required',
+            'nama_ibu'        => 'required',
+        ]);
+
+        // Cek apakah user sudah login
+        $user = Auth::user();
+        if (!$user) {
+            return $this->sendError('401', 'Silahkan login terlebih dahulu.');
+        }
 
         if ($validator->fails()) {
             return $this->sendError('Validation Error.', $validator->errors());
         }
-        $input = $request->all();
-        $nasabah = Nasabah::create($input);
 
+        // Cek apakah user sudah punya data nasabah
+        $nasabah = Nasabah::where('user_id', $user->id)->first();
+        if ($nasabah) {
+            return $this->sendError('Validation Error.', 'Anda sudah mempunyai data nasabah.');
+        }
+
+        // Simpan data nasabah
+        $input = [
+            'user_id'        => $user->id,
+            'nama_lengkap'   => $request->nama_lengkap,
+            'alamat'         => $request->alamat,
+            'nomor_telepon'  => $request->nomor_telepon,
+            'email'          => $request->email,
+            'tanggal_lahir'  => $request->tanggal_lahir,
+            'jenis_kelamin'  => $request->jenis_kelamin,
+            'nama_ibu'       => $request->nama_ibu,
+        ];
+
+        Nasabah::create($input);
 
         return $this->sendResponse('success', 'Data berhasil ditambahkan');
     }

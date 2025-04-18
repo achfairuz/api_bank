@@ -5,7 +5,6 @@ use App\Http\Controllers\API\NasabahController;
 use App\Http\Controllers\API\rekeningController;
 use App\Http\Controllers\API\TransaksiController;
 use App\Http\Middleware\ApiKeyMiddleware;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -28,10 +27,12 @@ Route::controller(AuthController::class)->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('nasabah', [NasabahController::class, 'showAll']);
     Route::get('nasabah/{id}', [NasabahController::class, 'show']);
-    Route::get('rekening', [rekeningController::class, 'showAll']);
     Route::put('nasabah/update/{id}', [NasabahController::class, 'update']);
     Route::post('nasabah/create', [NasabahController::class, 'create']);
     Route::delete('nasabah/delete/{id}', [NasabahController::class, 'destroy']);
+    Route::get('rekening', [rekeningController::class, 'showAll']);
+    Route::post('rekening', [rekeningController::class, 'create']);
+    Route::get('rekening/showByAuthId', [rekeningController::class, 'showByAuthId']);
 });
 
 Route::middleware(ApiKeyMiddleware::class)->group(function () {

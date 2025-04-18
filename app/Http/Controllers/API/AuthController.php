@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use Illuminate\Http\Request;
 use App\Http\Controllers\API\BaseController as BaseController;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Validator;
 
@@ -16,35 +15,46 @@ class AuthController extends BaseController
      *
      * @return \Illuminate\Http\Response
      */
-    public function register(Request $request): JsonResponse
+    public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'password' => 'required',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:6',
             'c_password' => 'required|same:password',
         ]);
+
         if ($validator->fails()) {
-            return $this->sendError('Validation Error.', $validator->errors());
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation Error.',
+                'errors' => $validator->errors()
+            ], 422);
         }
-        $input = $request->all();
-        $input['password'] = bcrypt($input['password']);
 
-        $user = User::create($input);
-        $success['token'] =  $user->createToken('TokoSkincare')->plainTextToken;
-        $success['name'] =  $user->name;
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password),
+        ]);
+
+        $success['token'] = $user->createToken('TokoSkincare')->plainTextToken;
+        $success['name'] = $user->name;
         $success['email'] = $user->email;
-        $success['password'] = $user->password;
 
-
-        return $this->sendResponse($success, 'User register successfully.');
+        return response()->json([
+            'success' => true,
+            'message' => 'User registered successfully.',
+            'data' => $success
+        ], 200);
     }
+
     /**
      * Login api
      *
      * @return \Illuminate\Http\Response
      */
-    public function login(Request $request): JsonResponse
+    public function login(Request $request)
     {
         if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             $user = Auth::user();

@@ -17,6 +17,7 @@ class Rekening extends Model
 
     // Tentukan kolom-kolom yang bisa diisi
     protected $fillable = [
+        'id_nasabah',
         'no_rekening',
         'saldo',
     ];

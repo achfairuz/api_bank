@@ -4,6 +4,10 @@ namespace App\Http\Controllers\API;
 
 use App\Models\Rekening;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt;
+use Validator;
+
 
 class rekeningController extends BaseController
 {
@@ -18,9 +22,37 @@ class rekeningController extends BaseController
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request)
     {
-        //
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'no_rekening' => 'required',
+                'saldo' => 'required',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->sendError('Validation error', $validator->errors());
+        }
+
+        // cek user 
+        $user = Auth::user()->nasabah;
+
+        if ($user == null) {
+            return $this->sendError('404', 'Buat data nasabah terlebih dahulu');
+        }
+
+        $data =  Rekening::create(
+            [
+                'id_nasabah' => $user->id_nasabah,
+                'no_rekening' => Crypt::encryptString($request->no_rekening),
+                'saldo' => $request->saldo,
+            ]
+        );
+
+
+        return $this->sendResponse($data, 'Rekening berhasil dibuat');
     }
 
     /**
@@ -29,6 +61,43 @@ class rekeningController extends BaseController
     public function store(Request $request)
     {
         //
+    }
+
+
+    public function showByAuthId()
+    {
+        // Cek user login
+        $user = Auth::user();
+
+        if ($user == null) {
+            return $this->sendError('401', 'Silahkan login terlebih dahulu');
+        }
+
+        // Cek apakah user punya data nasabah
+        if ($user->nasabah == null) {
+            return $this->sendError('404', 'Silahkan buat nasabah terlebih dahulu');
+        }
+
+        // Ambil data rekening berdasarkan ID nasabah
+        $rekenings = Rekening::where("id_nasabah", $user->nasabah->id_nasabah)
+            ->with('nasabah')
+            ->get();
+
+        // Cek apakah rekening ditemukan
+        if (!$rekenings) {
+            return $this->sendError('404', 'Data rekening tidak ditemukan');
+        }
+
+        foreach ($rekenings as $rekening) {
+            try {
+                $rekening->no_rekening = Crypt::decryptString($rekening->no_rekening);
+            } catch (\Exception $e) {
+                $rekening->no_rekening = 'ERROR DEKRIPSI';
+            }
+        }
+
+
+        return $this->sendResponse($rekenings, "Data Sukses Diambil");
     }
 
     /**

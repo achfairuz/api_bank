@@ -14,6 +14,7 @@ class Nasabah extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'user_id',
         'nama_lengkap',
         'alamat',
         'nomor_telepon',
@@ -22,4 +23,9 @@ class Nasabah extends Model
         'jenis_kelamin',
         'nama_ibu',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id', 'id');
+    }
 }
